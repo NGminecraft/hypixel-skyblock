@@ -10,6 +10,7 @@ import time
 class Main:
     def __init__(self):
         self.latest_pagect = 1
+        self.checkah()
     
     def first_start(self):
         valid_api = False
@@ -88,10 +89,24 @@ class Main:
     def get_watched_prices(self):
         watched_prices = []
         for i in self.watched_items:
-            watched_prices
+            watched_prices.append(self.get_highest_price_from_id(i))
+        return "\n".join(watched_prices)
             
-    def get_price_from_id(self, id):
-        self.all_ids[id][1]
+    def get_highest_price_from_id(self, id):
+        for i in self.watched_items:
+            try:
+                 item_info = self.latest_auctions[self.all_items[i][0]]
+                 if len(item_info) != 1:
+                    highest = 0
+                    for j in item_info:
+                        if j["highest_bid_amount"] > highest:
+                             highest = j["highest_bid_amount"]
+                    return highest
+                 else:
+                     return item_info[0]["highest_bid_amount"]
+            except KeyError:
+                print(f"Unable to find item: {i} in ah")
+                return "N/A"
         
 
     def setupGUI(self):
