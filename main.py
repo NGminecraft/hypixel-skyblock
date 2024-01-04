@@ -8,6 +8,9 @@ import time
 
 
 class Main:
+    def __init__(self):
+        self.latest_pagect = 1
+    
     def first_start(self):
         valid_api = False
         for i in range(5):
@@ -34,7 +37,6 @@ class Main:
                 dict2[dict[key][0]] = [key, dict[key][1]]
             return dict, dict2
 
-
     def startup(self):
         if os.path.isfile("data.txt"):
             # Fetching API_KEY
@@ -57,13 +59,24 @@ class Main:
     def checkah(self, page=False):
         fullah = []
         for i in range(self.latest_pagect):
-            result = requests.get(f"https://api.hypixel.net/v2/skyblock/auctions?pages={i}").json()
+            result = requests.get(f"https://api.hypixel.net/v2/skyblock/auctions?pages={i+1}").json()
             fullah.append(i for i in result)
         print(fullah)
         print(len(fullah))
-        self.latest_auctions = result["auctions"]
+        self.latest_auctions = self.format_ah(result["auctions"])
         self.latest_pagect = result["totalPages"]
         time.sleep(1)
+        
+    def format_ah(self, ah_list):
+        result_dict = {}
+        for i in ah_list:
+            print(i["item_name"])
+            if i["item_name"] in result_dict:
+                result_dict[i["item_name"]].append(i)
+            else:
+                result_dict[i["item_name"]] = [i]
+        return result_dict
+
 
     def get_watched_items(self):
         watched_items = []
@@ -71,6 +84,14 @@ class Main:
             watched_items.append(self.all_ids[i][0])
         print(type(watched_items))
         return "\n".join(watched_items)
+    
+    def get_watched_prices(self):
+        watched_prices = []
+        for i in self.watched_items:
+            watched_prices
+            
+    def get_price_from_id(self, id):
+        self.all_ids[id][1]
         
 
     def setupGUI(self):
@@ -80,6 +101,7 @@ class Main:
         ttk.Label(frm, text="Hypixel Skyblock", font=("Comic Sans MS", 50), anchor="center").grid(column=0, row=0)
         ttk.Label(frm, text=f"Api Key: {self.api_key}", font=("Arial", 10), foreground="gray88", anchor="e").grid(column=1, row=0)
         ttk.Label(frm, text=self.get_watched_items(), font=("Arial", 25)).grid(column=0, row=1)
+        ttk.Label(frm, text=self.get_watched_prices(), font=("Arial", 25)).grid(column=1, row=1)
         root.mainloop()
 
     def main(self):
