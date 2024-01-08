@@ -90,11 +90,11 @@ class Main:
         watched_prices = []
         for i in self.watched_items:
             watched_prices.append(self.get_highest_price_from_id(i))
-        return "\n".join(watched_prices)
+        return "\n".join(str(v) for v in watched_prices)
             
     def get_highest_price_from_id(self, id):
         try:
-            item_info = self.latest_auctions[id]
+            item_info = self.latest_auctions[self.all_ids[id][0]]
             if len(item_info) != 1:
                 highest = 0
                 for j in item_info:
