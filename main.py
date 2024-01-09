@@ -9,8 +9,19 @@ import time
 
 class Main:
     def __init__(self):
+        self.root = tkinter.Tk()
+        self.frm = ttk.Frame(self.root, padding=10)
+        self.frm.grid()
         self.latest_pagect = 1
-        self.checkah()
+        self.latest_auctions = None
+        self.watched_items_str = tkinter.StringVar()
+        self.watched_prices_str = tkinter.StringVar()
+        self.watched_total_str = tkinter.StringVar()
+        
+        self.watched_items_str.set("LOADING")
+        self.watched_prices_str.set("LOADING")
+        self.watched_total_str.set("LOADING")
+        self.startup()
     
     def first_start(self):
         valid_api = False
@@ -57,21 +68,32 @@ class Main:
         else:
             self.first_start()
             
-    def checkah(self, page=False):
-        fullah = []
-        for i in range(self.latest_pagect):
-            result = requests.get(f"https://api.hypixel.net/v2/skyblock/auctions?pages={i+1}").json()
-            fullah.append(i for i in result)
-        print(fullah)
-        print(len(fullah))
-        self.latest_auctions = self.format_ah(result["auctions"])
-        self.latest_pagect = result["totalPages"]
-        time.sleep(1)
+    def update_str(self):
+        self.watched_items_str.set(self.get_watched_items())
+        self.watched_prices_str.set(self.get_watched_prices())
+        self.watched_total_str.set(self.get_total_watched())
         
+            
+    def checkah(self, page=False):
+        while True:
+            try:
+                fullah = []
+                print(f"Getting {self.latest_pagect} pages of the Auction House")
+                for i in range(self.latest_pagect):
+                    result = requests.get(f"https://api.hypixel.net/v2/skyblock/auctions?pages={i+1}").json()
+                    fullah.extend(result)
+                print(type(fullah))
+                print(type(fullah[-1]["auctions"]))
+                print(fullah[-1])
+                self.latest_auctions = self.format_ah(fullah["auctions"])
+                self.latest_pagect = result["totalPages"]
+                time.sleep(1)
+            except requests.exceptions.ChunkedEncodingError:
+                print("Small Connection Error. Skipping")
+            
     def format_ah(self, ah_list):
         result_dict = {}
         for i in ah_list:
-            print(i["item_name"])
             if i["item_name"] in result_dict:
                 result_dict[i["item_name"]].append(i)
             else:
@@ -83,7 +105,6 @@ class Main:
         watched_items = []
         for i in self.watched_items:
             watched_items.append(self.all_ids[i][0])
-        print(type(watched_items))
         return "\n".join(watched_items)
     
     def get_watched_prices(self):
@@ -94,34 +115,51 @@ class Main:
             
     def get_highest_price_from_id(self, id):
         try:
-            item_info = self.latest_auctions[self.all_ids[id][0]]
-            if len(item_info) != 1:
-                highest = 0
-                for j in item_info:
-                    if j["highest_bid_amount"] > highest:
-                            highest = j["highest_bid_amount"]
-                return highest
+            if self.latest_auctions != None:                
+                item_info = self.latest_auctions[self.all_ids[id][0]]
+                if len(item_info) != 1:
+                    highest = 0
+                    for j in item_info:
+                        if j["highest_bid_amount"] > highest:
+                                highest = j["highest_bid_amount"]
+                    return highest
+                else:
+                    return item_info[0]["highest_bid_amount"]
             else:
-                return item_info[0]["highest_bid_amount"]
+                return "LOADING"
         except KeyError:
-            print(f"Unable to find item: {id} in ah")
             return "N/A"
-        
+    
+    def get_total_watched(self):
+        result = []
+        for i in self.watched_items:
+            try:
+                if self.latest_auctions != None:
+                    ah = self.latest_auctions[self.all_ids[i][0]]
+                    lowest = 99999999999999999999999
+                    for j in ah:
+                        if max(j["highest_bid_amount"], j["starting_bid"]) < lowest:
+                            lowest = max(j["highest_bid_amount"], j["starting_bid"])
+                    result.append(lowest)
+                else:
+                    return "LOADING"
+            except KeyError:
+                result.append("N/A")
+        return "\n".join(str(v) for v in result)
 
     def setupGUI(self):
-        root = tkinter.Tk()
-        frm = ttk.Frame(root, padding=10)
-        frm.grid()
-        ttk.Label(frm, text="Hypixel Skyblock", font=("Comic Sans MS", 50), anchor="center").grid(column=0, row=0)
-        ttk.Label(frm, text=f"Api Key: {self.api_key}", font=("Arial", 10), foreground="gray88", anchor="e").grid(column=1, row=0)
-        ttk.Label(frm, text=self.get_watched_items(), font=("Arial", 25)).grid(column=0, row=1)
-        ttk.Label(frm, text=self.get_watched_prices(), font=("Arial", 25)).grid(column=1, row=1)
-        root.mainloop()
-
-    def main(self):
-        self.startup()
+        ttk.Label(self.frm, text="Hypixel Skyblock", font=("Comic Sans MS", 50), anchor="center").grid(column=0, row=0)
+        ttk.Label(self.frm, text=f"Api Key: {self.api_key}", font=("Arial", 10), foreground="gray88", anchor="e").grid(column=1, row=0)
+        ttk.Label(self.frm, textvariable=self.watched_items_str, font=("Arial", 25)).grid(column=0, row=1)
+        ttk.Label(self.frm, textvariable=self.watched_prices_str, font=("Arial", 25)).grid(column=1, row=1)
+        ttk.Label(self.frm, textvariable=self.watched_total_str, font=("Arial", 25)).grid(column=2, row=1)
+        running = True
+        while running:
+            self.update_str()
+            self.root.update_idletasks()
+            self.root.update()
+            time.sleep(0.1)
     
 
 if __name__ == "__main__":
     strt = Main()
-    strt.main()
