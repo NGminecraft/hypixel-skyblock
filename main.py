@@ -4,6 +4,7 @@ import tkinter
 from tkinter import ttk
 import threading
 import time
+import copy
 # My key: 255b77be-8cd9-404f-904a-f4543f500051
 
 
@@ -71,28 +72,36 @@ class Main:
     def update_str(self):
         self.watched_items_str.set(self.get_watched_items())
         self.watched_prices_str.set(self.get_watched_prices())
-        self.watched_total_str.set(self.get_total_watched())
+        self.watched_total_str.set(self.get_watched_market())
         
-            
     def checkah(self, page=False):
         while True:
-            try:
-                fullah = []
-                print(f"Getting {self.latest_pagect} pages of the Auction House")
-                for i in range(self.latest_pagect):
-                    result = requests.get(f"https://api.hypixel.net/v2/skyblock/auctions?pages={i+1}").json()
-                    fullah.append(result["auctions"])
-                    print(len(fullah))
-                self.latest_auctions = self.format_ah(fullah)
-                self.latest_pagect = result["totalPages"]
-                time.sleep(1)
-            except requests.exceptions.ChunkedEncodingError:
-                print("Small Connection Error. Skipping")
+            fullah = []
+            for i in range(100):
+                try:
+                    result = requests.get(f"https://api.hypixel.net/v2/skyblock/auctions?page={i+1}", timeout=10).json()
+                    if result["success"]:
+                        fullah.append(result["auctions"])
+                    else:
+                        break
+                except requests.exceptions.ChunkedEncodingError:
+                    for i in range(5):
+                        try:
+                            result = requests.get(f"https://api.hypixel.net/v2/skyblock/auctions?page={i+1}", timeout=10).json()
+                            if result["success"]:
+                                fullah.append(result["auctions"])
+                        except requests.exceptions.ChunkedEncodingError:
+                            pass
+                        else:
+                            break
+                    else:
+                        continue
+                    continue
+            self.latest_auctions = self.format_ah(fullah)
             
     def format_ah(self, ah_list):
         result_dict = {}
         for i in ah_list[0]:
-            print(type(i))
             if i["item_name"] in result_dict:
                 result_dict[i["item_name"]].append(i)
             else:
@@ -111,6 +120,19 @@ class Main:
         for i in self.watched_items:
             watched_prices.append(self.get_highest_price_from_id(i))
         return "\n".join(str(v) for v in watched_prices)
+    
+    def get_watched_market(self):
+        result = []
+        for i in self.watched_items:
+            i = self.all_ids[i][0]
+            try:
+                if i in self.latest_auctions:
+                    result.append(len(self.latest_auctions[i]))
+                else:
+                    result.append(0)
+            except TypeError:
+                result.append(0)
+        return "\n".join(str(t) for t in result)
             
     def get_highest_price_from_id(self, id):
         try:
@@ -129,7 +151,7 @@ class Main:
         except KeyError:
             return "N/A"
     
-    def get_total_watched(self):
+    def get_lowest_watched_price(self):
         result = []
         for i in self.watched_items:
             try:
