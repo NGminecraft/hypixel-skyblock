@@ -98,6 +98,9 @@ class Main:
                         continue
                     continue
             self.latest_auctions = self.format_ah(fullah)
+            with open("Latest_Auction_House.txt", "w") as file:
+                file.write(fullah)
+                print(f"Saved auction house file as Latest_Auction_House.txt at {time.time()}")
             
     def format_ah(self, ah_list):
         result_dict = {}
