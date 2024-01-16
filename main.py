@@ -71,7 +71,7 @@ class Main:
             
     def update_str(self):
         self.watched_items_str.set(self.get_watched_items())
-        self.watched_prices_str.set(self.get_watched_prices())
+        self.watched_prices_str.set(self.get_lowest_watched_price())
         self.watched_total_str.set(self.get_watched_market())
         
     def checkah(self, page=False):
@@ -118,7 +118,7 @@ class Main:
     def get_watched_prices(self):
         watched_prices = []
         for i in self.watched_items:
-            watched_prices.append(self.get_highest_price_from_id(i))
+            watched_prices.append(self.lowest_price_from_id(i))
         return "\n".join(str(v) for v in watched_prices)
     
     def get_watched_market(self):
